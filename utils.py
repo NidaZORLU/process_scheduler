@@ -2,12 +2,13 @@
 import json
 from models import Process
 
+
 def load_processes_from_json(path: str):
     """
     JSON formatı:
     [
-        {"pid": "P1", "arrival_time": 0, "burst_time": 8, "priority": 2},
-        ...
+      {"pid": "P1", "arrival_time": 0, "burst_time": 8, "priority": 2},
+      ...
     ]
     """
     with open(path, "r") as f:
@@ -19,7 +20,6 @@ def load_processes_from_json(path: str):
         at = int(item["arrival_time"])
         bt = int(item["burst_time"])
         prio = int(item.get("priority", 999))  # yoksa en düşük öncelik
-
         processes.append(Process(pid, at, bt, prio))
 
     return processes
