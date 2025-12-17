@@ -1,12 +1,4 @@
-# metrics.py
-
 def calculate_metrics(processes, gantt=None, starvation_threshold=10):
-    """
-    Returns a dictionary of metrics:
-      avg_waiting, avg_turnaround, avg_response,
-      max_waiting, starved_count, starved_pids,
-      cpu_util
-    """
     n = len(processes)
     if n == 0:
         return {
@@ -25,7 +17,6 @@ def calculate_metrics(processes, gantt=None, starvation_threshold=10):
 
     max_waiting = max(p.waiting_time for p in processes)
 
-    # starvation: waiting_time threshold'a göre belirle (en doğru ve rapor uyumlu)
     starved_pids = [p.pid for p in processes if p.waiting_time >= starvation_threshold]
 
     cpu_util = 0.0

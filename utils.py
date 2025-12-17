@@ -1,7 +1,6 @@
 from models import Process
 import json
 
-# TXT input (CLI + rapor için)
 def load_processes_from_txt(path):
     processes = []
     with open(path, "r") as f:
@@ -13,7 +12,6 @@ def load_processes_from_txt(path):
     return processes
 
 
-# JSON input (GUI için – ekstra)
 def load_processes_from_json(path):
     processes = []
     with open(path, "r") as f:

@@ -22,7 +22,6 @@ class SchedulerGUI:
         self.root.geometry("980x640")
         self.root.minsize(780, 520)
 
-        # ---- Row 1: Controls (Algorithm / Quantum / Aging / Threshold)
         controls = ttk.Frame(root, padding=10)
         controls.pack(side=tk.TOP, fill=tk.X)
 
@@ -54,7 +53,6 @@ class SchedulerGUI:
         self.starve_thr_entry = ttk.Entry(controls, textvariable=self.starve_thr_var, width=6)
         self.starve_thr_entry.pack(side=tk.LEFT)
 
-        # ---- Row 2: Buttons (prevents overflow on small windows)
         buttons = ttk.Frame(root, padding=(10, 0, 10, 10))
         buttons.pack(side=tk.TOP, fill=tk.X)
 
@@ -64,7 +62,6 @@ class SchedulerGUI:
         self.gantt_button = ttk.Button(buttons, text="Show Gantt Chart", command=self.show_gantt_chart)
         self.gantt_button.pack(side=tk.RIGHT, padx=(0, 10))
 
-        # ---- Middle: Table
         mid_frame = ttk.Frame(root, padding=10)
         mid_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -94,7 +91,6 @@ class SchedulerGUI:
         self.tree.configure(yscroll=scrollbar.set)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # ---- Bottom: Metrics
         bottom_frame = ttk.Frame(root, padding=10)
         bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
@@ -167,10 +163,8 @@ class SchedulerGUI:
             messagebox.showerror("Simulation Error", str(e))
             return
 
-        # ✅ IMPORTANT: set last_gantt BEFORE any further processing
         self.last_gantt = gantt
 
-        # Fill table
         for row in self.tree.get_children():
             self.tree.delete(row)
 
@@ -192,7 +186,6 @@ class SchedulerGUI:
                 ),
             )
 
-        # Metrics (guarded)
         try:
             m = calculate_metrics(result, gantt=gantt)
             text = (
@@ -213,7 +206,6 @@ class SchedulerGUI:
             return
 
         try:
-            # Clean old figures to avoid backend weirdness
             plt.close("all")
 
             fig, ax = plt.subplots(figsize=(10, 3))

@@ -1,11 +1,7 @@
-# gantt.py
 import matplotlib.pyplot as plt
 
 
 def draw_gantt(gantt, title: str, filepath: str):
-    """
-    gantt: [(pid, start, end), ...]
-    """
     if not gantt:
         return
 

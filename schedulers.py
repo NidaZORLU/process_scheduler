@@ -1,10 +1,4 @@
-# schedulers.py
-
 def fcfs(processes):
-    """
-    First-Come, First-Served (Non-preemptive)
-    Gantt format: [(pid, start, end), ...]  (IDLE included)
-    """
     for p in processes:
         p.reset()
 
@@ -32,11 +26,6 @@ def fcfs(processes):
 
 
 def sjf(processes):
-    """
-    Shortest Job First (Non-preemptive)
-    Tie-break: FCFS (arrival_time)
-    Gantt format: [(pid, start, end), ...]
-    """
     for p in processes:
         p.reset()
 
@@ -50,18 +39,14 @@ def sjf(processes):
     added = set()
 
     while completed < n:
-        # Add newly arrived processes to ready queue
         for p in processes:
             if p.arrival_time <= time and p.pid not in added:
                 ready.append(p)
                 added.add(p.pid)
 
         if not ready:
-            # No process ready -> CPU idle for 1 time unit
             time += 1
             continue
-
-        # Pick shortest burst; tie-break by arrival_time then pid for deterministic output
         ready.sort(key=lambda p: (p.burst_time, p.arrival_time, p.pid))
         current = ready.pop(0)
 
@@ -87,21 +72,7 @@ def priority_non_preemptive(
     aging_boost=1,
     starvation_threshold=10
 ):
-    """
-    Priority Scheduling (Non-preemptive)
-    Lower number = higher priority.
 
-    Starvation detection:
-      - If a process waits in ready queue for >= starvation_threshold time,
-        process.starvation_risk is set True.
-
-    Aging (anti-starvation):
-      - If enable_aging=True, an effective_priority is computed:
-          waited = time - arrival_time   (process hasn't started yet)
-          steps = waited // aging_interval
-          effective_priority = max(0, base_priority - steps * aging_boost)
-      - Selection uses effective_priority instead of base priority.
-    """
     for p in processes:
         p.reset()
 
@@ -116,7 +87,6 @@ def priority_non_preemptive(
         ready = [p for p in processes if p.arrival_time <= time and remaining[p.pid] > 0]
 
         if not ready:
-            # Jump to next arrival (include IDLE block)
             next_arrival = min(
                 (p.arrival_time for p in processes if remaining[p.pid] > 0),
                 default=None
@@ -129,21 +99,17 @@ def priority_non_preemptive(
                 time = next_arrival
             continue
 
-        # Starvation mark + effective priority calculation
         for p in ready:
             waited = time - p.arrival_time
 
-            # starvation mark
             p.starvation_risk = (waited >= starvation_threshold)
 
-            # effective priority (aging) or base priority
             if enable_aging:
                 steps = (waited // aging_interval) if aging_interval > 0 else 0
                 p.effective_priority = max(0, p.priority - steps * aging_boost)
             else:
                 p.effective_priority = p.priority
 
-        # Choose process with best (lowest) effective priority; tie-break FCFS
         chosen = min(ready, key=lambda p: (p.effective_priority, p.arrival_time, p.pid))
 
         if chosen.start_time is None:
@@ -166,11 +132,6 @@ def priority_non_preemptive(
 
 
 def round_robin(processes, quantum=3):
-    """
-    Round Robin (Preemptive)
-    quantum must be provided (default=3 for report requirement).
-    Gantt format: [(pid, start, end), ...]
-    """
     for p in processes:
         p.reset()
 
@@ -183,14 +144,12 @@ def round_robin(processes, quantum=3):
     idx = 0
     completed = 0
 
-    # initially add processes that arrived at time 0
     while idx < n and processes[idx].arrival_time <= time:
         queue.append(processes[idx])
         idx += 1
 
     while completed < n:
         if not queue:
-            # CPU idle for 1 unit, wait for arrivals
             time += 1
             while idx < n and processes[idx].arrival_time <= time:
                 queue.append(processes[idx])
@@ -211,7 +170,6 @@ def round_robin(processes, quantum=3):
 
         gantt.append((current.pid, start, end))
 
-        # add newly arrived processes during this slice
         while idx < n and processes[idx].arrival_time <= time:
             queue.append(processes[idx])
             idx += 1

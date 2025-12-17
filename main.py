@@ -20,7 +20,6 @@ def print_table(processes):
 
 
 def run_and_print(name, func, proc_list, *args, starvation_threshold=10, **kwargs):
-    # ✅ kwargs added so we can pass enable_aging, aging_interval, etc.
     gantt, result = func(proc_list, *args, **kwargs)
 
     print(f"\n--- Scheduling Algorithm: {name} ---")
@@ -53,8 +52,6 @@ def main():
 
     run_and_print("FCFS", fcfs, clone_process_list(base), starvation_threshold=args.starve)
     run_and_print("SJF", sjf, clone_process_list(base), starvation_threshold=args.starve)
-
-    # Priority (Non-preemptive) - aging OFF by default (matches assignment)
     run_and_print(
         "Priority (Non-preemptive)",
         priority_non_preemptive,
