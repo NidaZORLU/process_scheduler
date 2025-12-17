@@ -20,41 +20,51 @@ class SchedulerGUI:
         self.root = root
         self.root.title("Process Scheduling Simulator")
         self.root.geometry("980x640")
+        self.root.minsize(780, 520)
 
-        top_frame = ttk.Frame(root, padding=10)
-        top_frame.pack(side=tk.TOP, fill=tk.X)
+        # ---- Row 1: Controls (Algorithm / Quantum / Aging / Threshold)
+        controls = ttk.Frame(root, padding=10)
+        controls.pack(side=tk.TOP, fill=tk.X)
 
-        ttk.Label(top_frame, text="Algorithm:").pack(side=tk.LEFT)
-        self.algorithm_var = tk.StringVar()
+        ttk.Label(controls, text="Algorithm:").pack(side=tk.LEFT)
+        self.algorithm_var = tk.StringVar(value=list(ALGORITHMS.keys())[0])
         self.algorithm_combo = ttk.Combobox(
-            top_frame,
+            controls,
             textvariable=self.algorithm_var,
             values=list(ALGORITHMS.keys()),
             state="readonly",
-            width=28,
+            width=22,
         )
-        self.algorithm_combo.current(0)
         self.algorithm_combo.pack(side=tk.LEFT, padx=5)
         self.algorithm_combo.bind("<<ComboboxSelected>>", self.on_algorithm_change)
 
-        ttk.Label(top_frame, text="Quantum (RR):").pack(side=tk.LEFT, padx=(20, 5))
-        self.quantum_var = tk.StringVar(value="2")
-        self.quantum_entry = ttk.Entry(top_frame, textvariable=self.quantum_var, width=6)
+        ttk.Label(controls, text="Quantum (RR):").pack(side=tk.LEFT, padx=(12, 5))
+        self.quantum_var = tk.StringVar(value="3")
+        self.quantum_entry = ttk.Entry(controls, textvariable=self.quantum_var, width=6)
         self.quantum_entry.pack(side=tk.LEFT)
 
-        # Aging checkbox (Priority için)
         self.aging_var = tk.BooleanVar(value=False)
-        self.aging_check = ttk.Checkbutton(top_frame, text="Aging (anti-starvation)", variable=self.aging_var)
-        self.aging_check.pack(side=tk.LEFT, padx=(20, 5))
+        self.aging_check = ttk.Checkbutton(
+            controls, text="Aging (anti-starvation)", variable=self.aging_var
+        )
+        self.aging_check.pack(side=tk.LEFT, padx=(12, 5))
 
-        ttk.Label(top_frame, text="Starvation threshold:").pack(side=tk.LEFT, padx=(10, 5))
+        ttk.Label(controls, text="Starvation threshold:").pack(side=tk.LEFT, padx=(12, 5))
         self.starve_thr_var = tk.StringVar(value="10")
-        self.starve_thr_entry = ttk.Entry(top_frame, textvariable=self.starve_thr_var, width=6)
+        self.starve_thr_entry = ttk.Entry(controls, textvariable=self.starve_thr_var, width=6)
         self.starve_thr_entry.pack(side=tk.LEFT)
 
-        run_button = ttk.Button(top_frame, text="Run Simulation", command=self.run_simulation)
-        run_button.pack(side=tk.LEFT, padx=20)
+        # ---- Row 2: Buttons (prevents overflow on small windows)
+        buttons = ttk.Frame(root, padding=(10, 0, 10, 10))
+        buttons.pack(side=tk.TOP, fill=tk.X)
 
+        self.run_button = ttk.Button(buttons, text="Run Simulation", command=self.run_simulation)
+        self.run_button.pack(side=tk.RIGHT)
+
+        self.gantt_button = ttk.Button(buttons, text="Show Gantt Chart", command=self.show_gantt_chart)
+        self.gantt_button.pack(side=tk.RIGHT, padx=(0, 10))
+
+        # ---- Middle: Table
         mid_frame = ttk.Frame(root, padding=10)
         mid_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -84,14 +94,12 @@ class SchedulerGUI:
         self.tree.configure(yscroll=scrollbar.set)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
+        # ---- Bottom: Metrics
         bottom_frame = ttk.Frame(root, padding=10)
         bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
         self.metrics_label = ttk.Label(bottom_frame, text="Metrics: -", anchor="w")
         self.metrics_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        gantt_button = ttk.Button(bottom_frame, text="Show Gantt Chart", command=self.show_gantt_chart)
-        gantt_button.pack(side=tk.RIGHT)
 
         self.last_gantt = None
         self.on_algorithm_change()
@@ -123,39 +131,46 @@ class SchedulerGUI:
         except FileNotFoundError:
             messagebox.showerror("Error", "data/processes.json not found.")
             return
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load input: {e}")
+            return
 
         proc_list = clone_process_list(processes)
         func = ALGORITHMS[algo_name]
 
-        if algo_name == "Round Robin":
-            try:
+        try:
+            if algo_name == "Round Robin":
                 q = int(self.quantum_var.get())
                 if q <= 0:
                     raise ValueError
-            except ValueError:
-                messagebox.showerror("Error", "Quantum must be a positive integer.")
-                return
-            gantt, result = self._run_rr_safely(func, proc_list, q)
+                gantt, result = self._run_rr_safely(func, proc_list, q)
 
-        elif algo_name == "Priority (Non-preemptive)":
-            try:
+            elif algo_name == "Priority (Non-preemptive)":
                 thr = int(self.starve_thr_var.get())
                 if thr < 0:
                     raise ValueError
-            except ValueError:
-                messagebox.showerror("Error", "Starvation threshold must be a non-negative integer.")
-                return
 
-            gantt, result = priority_non_preemptive(
-                proc_list,
-                enable_aging=bool(self.aging_var.get()),
-                aging_interval=1,
-                aging_boost=1,
-                starvation_threshold=thr
-            )
-        else:
-            gantt, result = func(proc_list)
+                gantt, result = priority_non_preemptive(
+                    proc_list,
+                    enable_aging=bool(self.aging_var.get()),
+                    aging_interval=1,
+                    aging_boost=1,
+                    starvation_threshold=thr
+                )
+            else:
+                gantt, result = func(proc_list)
 
+        except ValueError:
+            messagebox.showerror("Error", "Quantum/threshold must be a valid non-negative integer (quantum > 0).")
+            return
+        except Exception as e:
+            messagebox.showerror("Simulation Error", str(e))
+            return
+
+        # ✅ IMPORTANT: set last_gantt BEFORE any further processing
+        self.last_gantt = gantt
+
+        # Fill table
         for row in self.tree.get_children():
             self.tree.delete(row)
 
@@ -177,41 +192,50 @@ class SchedulerGUI:
                 ),
             )
 
-        m = calculate_metrics(result, gantt=gantt)
-
-        text = (
-            f"Metrics: Avg Waiting={m['avg_waiting']:.2f}, "
-            f"Avg Turnaround={m['avg_turnaround']:.2f}, "
-            f"CPU Util={m['cpu_util']:.2f}%, "
-            f"Max Wait={m['max_waiting']:.2f}, "
-            f"Starved={m['starved_count']} {m['starved_pids']}"
-        )
+        # Metrics (guarded)
+        try:
+            m = calculate_metrics(result, gantt=gantt)
+            text = (
+                f"Metrics: Avg Waiting={m['avg_waiting']:.2f}, "
+                f"Avg Turnaround={m['avg_turnaround']:.2f}, "
+                f"CPU Util={m['cpu_util']:.2f}%, "
+                f"Max Wait={m['max_waiting']:.2f}, "
+                f"Starved={m['starved_count']} {m['starved_pids']}"
+            )
+        except Exception as e:
+            text = f"Metrics: error ({e})"
         self.metrics_label.config(text=text)
 
-        self.last_gantt = gantt
-
     def show_gantt_chart(self):
-        if not self.last_gantt:
+        # More robust check: allow empty list vs None
+        if self.last_gantt is None or len(self.last_gantt) == 0:
             messagebox.showinfo("Info", "Run a simulation first.")
             return
 
-        fig, ax = plt.subplots(figsize=(10, 3))
+        try:
+            # Clean old figures to avoid backend weirdness
+            plt.close("all")
 
-        y_positions = {}
-        current_y = 10
+            fig, ax = plt.subplots(figsize=(10, 3))
 
-        for pid, start, end in self.last_gantt:
-            if pid not in y_positions:
-                y_positions[pid] = current_y
-                current_y += 10
-            ax.broken_barh([(start, end - start)], (y_positions[pid], 8))
+            y_positions = {}
+            current_y = 10
 
-        ax.set_xlabel("Time")
-        ax.set_yticks(list(y_positions.values()))
-        ax.set_yticklabels(list(y_positions.keys()))
-        ax.set_title("Gantt Chart")
-        plt.tight_layout()
-        plt.show()
+            for pid, start, end in self.last_gantt:
+                if pid not in y_positions:
+                    y_positions[pid] = current_y
+                    current_y += 10
+                ax.broken_barh([(start, end - start)], (y_positions[pid], 8))
+
+            ax.set_xlabel("Time")
+            ax.set_yticks(list(y_positions.values()))
+            ax.set_yticklabels(list(y_positions.keys()))
+            ax.set_title("Gantt Chart")
+            plt.tight_layout()
+            plt.show()
+
+        except Exception as e:
+            messagebox.showerror("Gantt Error", f"Failed to render chart: {e}")
 
 
 def main():
