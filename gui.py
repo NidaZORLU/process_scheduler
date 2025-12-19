@@ -200,7 +200,7 @@ class SchedulerGUI:
         self.metrics_label.config(text=text)
 
     def show_gantt_chart(self):
-        # More robust check: allow empty list vs None
+
         if self.last_gantt is None or len(self.last_gantt) == 0:
             messagebox.showinfo("Info", "Run a simulation first.")
             return
